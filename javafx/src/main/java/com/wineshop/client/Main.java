@@ -31,8 +31,11 @@ import javafx.stage.Stage;
 import javax.inject.Inject;
 
 import org.granite.client.tide.ContextManager;
+import org.granite.client.tide.collections.javafx.PagedQuery;
+import org.granite.client.tide.data.EntityManager;
 import org.granite.client.tide.javafx.JavaFXApplication;
 import org.granite.client.tide.javafx.JavaFXServerSessionStatus;
+import org.granite.client.tide.javafx.ManagedEntity;
 import org.granite.client.tide.javafx.TideFXMLLoader;
 import org.granite.client.tide.javafx.spring.Identity;
 import org.granite.client.tide.server.ExceptionHandler;
@@ -47,6 +50,10 @@ import org.granite.logging.Logger;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
+
+import com.wineshop.client.entities.Vineyard;
+import com.wineshop.client.services.VineyardRepository;
 
 
 /**
@@ -122,7 +129,31 @@ public class Main extends Application {
     	@Bean
     	public App init() {
     		return new App();
-    	}    	
+    	}
+    	
+    	/**
+    	 * Defines the server query for the list of vineyards
+    	 */
+    	@Bean @Scope("view")
+    	public PagedQuery<Vineyard, Vineyard> vineyards(ServerSession serverSession)
+    	    throws Exception {
+    	    PagedQuery<Vineyard, Vineyard> vineyards =
+    	        new PagedQuery<Vineyard, Vineyard>(serverSession);
+    	    vineyards.setMethodName("findByFilter");
+    	    vineyards.setMaxResults(25);
+    	    vineyards.setRemoteComponentClass(VineyardRepository.class);
+    	    vineyards.setElementClass(Vineyard.class);
+    	    vineyards.setFilterClass(Vineyard.class);
+    	    return vineyards;
+    	}
+    	
+        /**
+         * A managed entity that can be used in controllers or views
+         */
+    	@Bean @Scope("view")
+    	public ManagedEntity<Vineyard> vineyard(EntityManager entityManager) {
+    	    return new ManagedEntity<Vineyard>(entityManager);
+    	}
     }
     
     /**
