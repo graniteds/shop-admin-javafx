@@ -21,6 +21,7 @@
 package com.wineshop.client;
 
 import java.net.URL;
+import java.util.Calendar;
 import java.util.ResourceBundle;
 
 import javax.inject.Inject;
@@ -28,14 +29,20 @@ import javax.inject.Inject;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.util.Callback;
+import javafx.util.converter.IntegerStringConverter;
 
 import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.collections.javafx.TableViewSortAdapter;
@@ -50,6 +57,7 @@ import org.springframework.stereotype.Component;
 import com.wineshop.client.entities.Address;
 import com.wineshop.client.entities.Vineyard;
 import com.wineshop.client.entities.Wine;
+import com.wineshop.client.entities.Wine$Type;
 import com.wineshop.client.services.VineyardRepository;
 
 
@@ -74,7 +82,10 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	
 	@FXML
 	private TextField fieldAddress;
-
+	
+	@FXML
+	private ListView<Wine> listWines;
+	
 	@FXML
 	private Button buttonDelete;
 
@@ -113,12 +124,21 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 				if (oldValue != null) {
 					fieldName.textProperty().unbindBidirectional(oldValue.nameProperty());
 					fieldAddress.textProperty().unbindBidirectional(oldValue.getAddress().addressProperty());
+					listWines.setItems(null);
 				}
 				if (newValue != null) {
 					fieldName.textProperty().bindBidirectional(newValue.nameProperty());
 					fieldAddress.textProperty().bindBidirectional(newValue.getAddress().addressProperty());
+					listWines.setItems(newValue.getWines());
 				}
 			}
+		});
+		
+		// Define the cell factory for the list of wines 
+		listWines.setCellFactory(new Callback<ListView<Wine>, ListCell<Wine>>() {
+		    public ListCell<Wine> call(ListView<Wine> listView) {
+		        return new WineListCell();
+		    }
 		});
 		
 		buttonCancel.disableProperty().bind(Bindings.not(vineyard.savedProperty()));
@@ -203,12 +223,111 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 		);
 	}
 	
-	@SuppressWarnings("unused")
-	@FXML
+	/**
+	 * Action for cancel button
+	 */
+	@FXML @SuppressWarnings("unused")
 	private void cancel(ActionEvent event) {
 		if (tableVineyards.getSelectionModel().isEmpty())
 			select(null);
 		else
 			tableVineyards.getSelectionModel().clearSelection();
+	}
+		
+	/**
+	 * Action for Add wine button
+	 */
+	@FXML @SuppressWarnings("unused")
+	private void addWine(ActionEvent event) {
+	    Wine wine = new Wine();
+	    wine.setVineyard(this.vineyard.getInstance());
+	    wine.setName("");
+	    wine.setYear(Calendar.getInstance().get(Calendar.YEAR)-3);
+	    wine.setType(Wine$Type.RED);
+	    this.vineyard.getInstance().getWines().add(wine);
+	}
+
+	/**
+	 * Action for Remove wine button
+	 */
+	@FXML @SuppressWarnings("unused")
+	private void removeWine(ActionEvent event) {
+	    if (!listWines.getSelectionModel().isEmpty())
+	        this.vineyard.getInstance().getWines().remove(listWines.getSelectionModel().getSelectedIndex());
+	}
+	
+	
+	
+	private static class WineListCell extends ListCell<Wine> {
+		 
+	    private ChoiceTypeListener choiceTypeListener = null;
+	 
+	    protected void updateItem(Wine wine, boolean empty) {
+	        Wine oldWine = getItem();
+	        if (oldWine != null && wine == null) {
+	            HBox hbox = (HBox)getGraphic();
+	            
+	            TextField fieldName = (TextField)hbox.getChildren().get(0);
+	            fieldName.textProperty()
+	                .unbindBidirectional(getItem().nameProperty());
+	            
+	            TextField fieldYear = (TextField)hbox.getChildren().get(1);
+	            fieldYear.textProperty()
+	                .unbindBidirectional(getItem().yearProperty());
+	            
+	            getItem().typeProperty().unbind();
+	            getItem().typeProperty().removeListener(choiceTypeListener);
+	            choiceTypeListener = null;
+	            
+	            setGraphic(null);
+	        }
+	        
+	        super.updateItem(wine, empty);
+	        
+	        if (wine != null && wine != oldWine) {
+	            TextField fieldName = new TextField();
+	            fieldName.textProperty()
+	                .bindBidirectional(wine.nameProperty());
+	 
+	            TextField fieldYear = new TextField();
+	            fieldYear.setPrefWidth(40);
+	            fieldYear.textProperty()
+	                .bindBidirectional(wine.yearProperty(), new IntegerStringConverter());
+	 
+	            ChoiceBox<Wine$Type> choiceType = new ChoiceBox<Wine$Type>(
+	                FXCollections.observableArrayList(Wine$Type.values())
+	            );
+	            choiceType.getSelectionModel()
+	                .select(getItem().getType());
+	            getItem().typeProperty()
+	                .bind(choiceType.getSelectionModel().selectedItemProperty());
+	            choiceTypeListener = new ChoiceTypeListener(choiceType);
+	            getItem().typeProperty()
+	                .addListener(choiceTypeListener);
+	 
+	            HBox hbox = new HBox();
+	            hbox.setSpacing(5.0);
+	            hbox.getChildren().add(fieldName);
+	            hbox.getChildren().add(fieldYear);
+	            hbox.getChildren().add(choiceType);
+	            setGraphic(hbox);
+	        }
+	    }
+	 
+	    private final static class ChoiceTypeListener 
+	    	implements ChangeListener<Wine$Type> {
+	 
+	        private ChoiceBox<Wine$Type> choiceBox;
+	 
+	        public ChoiceTypeListener(ChoiceBox<Wine$Type> choiceBox) {
+	            this.choiceBox = choiceBox;
+	        }
+	 
+	        @Override
+	        public void changed(ObservableValue<? extends Wine$Type> property,
+	                Wine$Type oldValue, Wine$Type newValue) {
+	            choiceBox.getSelectionModel().select(newValue);
+	        }
+	    }
 	}
 }
