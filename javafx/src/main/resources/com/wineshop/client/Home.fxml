@@ -4,6 +4,7 @@
 <?import java.lang.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?> 
 <?import javafx.scene.layout.*?>
 
 <BorderPane id="BorderPane" prefHeight="500" prefWidth="700" xmlns:fx="http://javafx.com/fxml" fx:controller="com.wineshop.client.Home">
@@ -24,22 +25,50 @@
 	</top>
     <center>
     	<HBox spacing="10">
-    		<children>
-    			<VBox spacing="10">
-    				<children>
-				        <HBox spacing="10">
-				            <children>
-				                <TextField fx:id="fieldHello" prefColumnCount="20" onAction="#hello"/>
-				                <Button text="Welcome" onAction="#hello"/>
-				            </children>
-				        </HBox>
+            <children>
+                <VBox spacing="10">
+                    <children>
+                        <!-- Search Bar -->
+                        <HBox spacing="10">
+                            <children>
+                                <TextField fx:id="fieldSearch" prefColumnCount="20" onAction="#search"/>
+                                <Button text="Search" onAction="#search"/>
+                            </children>
+                        </HBox>
                         
-                        <Label fx:id="labelMessage" style="-fx-text-fill: red" visible="false" managed="false"/>
-				        
-				        <ListView fx:id="listWelcomes" layoutX="10" layoutY="40"/>
-				  	</children>
-				</VBox>
-			</children>
+                        <TableView fx:id="tableVineyards" layoutX="10" layoutY="40" items="$vineyards">
+                            <columns>
+                                <TableColumn fx:id="columnName" text="Name" prefWidth="320" sortable="true">
+                                    <cellValueFactory><PropertyValueFactory property="name"/></cellValueFactory>
+                                </TableColumn> 
+                            </columns>
+                        </TableView>
+                    </children>
+                </VBox>
+                
+                <VBox spacing="10">
+                    <children>
+                        <Label fx:id="labelFormVineyard" text="Create vineyard"/>
+                        <GridPane fx:id="formVineyard" hgap="4" vgap="4">
+                            <children>
+                                <Label text="Name" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                                <TextField fx:id="fieldName" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+                                
+                                <Label text="Address" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                                <TextField fx:id="fieldAddress" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                            </children>
+                        </GridPane>
+                        <!-- Button Bar -->
+                        <HBox spacing="10">
+                            <children>
+                                <Button fx:id="buttonSave" text="Save" onAction="#save"/>
+                                <Button fx:id="buttonCancel" text="Cancel" onAction="#cancel"/>
+                                <Button fx:id="buttonDelete" text="Delete" onAction="#delete"/>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+            </children>
 		</HBox>
     </center>
 </BorderPane>
