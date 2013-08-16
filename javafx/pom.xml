@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2008 Marvin Herman Froeder
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>shop-admin-javafx</artifactId>
+        <groupId>com.wineshop</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+  
+    <artifactId>shop-admin-javafx-javafx</artifactId>
+    <packaging>jar</packaging>
+    <name>GraniteDS/Tide JavaFX Spring JPA/Hibernate JavaFX</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>javafx</artifactId>
+            <version>${javafx.version}</version>
+            <systemPath>${java.home}/lib/jfxrt.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${springframework.client.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${springframework.client.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${springframework.client.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-expression</artifactId>
+            <version>${springframework.client.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>1.0.0.GA</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>4.3.0.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <version>2.2.2</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.extcos</groupId>
+            <artifactId>extcos</artifactId>
+            <version>0.3b</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpasyncclient</artifactId>
+            <version>4.0-beta4</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-client</artifactId>
+            <version>8.1.7.v20120910</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-websocket</artifactId>
+            <version>8.1.7.v20120910</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.graniteds</groupId>
+            <artifactId>granite-client</artifactId>
+            <version>${graniteds.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.graniteds</groupId>
+            <artifactId>granite-client-javafx</artifactId>
+            <version>${graniteds.version}</version>
+            <type>jar</type>
+        </dependency>
+    </dependencies>
+  
+    <build>
+        <finalName>shop-admin-javafx</finalName>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+    
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <taskdef name="gfx" classname="org.granite.generator.javafx.AntJavaFXTask"/>
+                                
+                                <gfx outputdir="${basedir}/src/main/java" 
+                                    baseoutputdir="${project.build.directory}/generated-sources/gfx" 
+                                    tide="true"
+                                    uid="uid"
+                                    entityfactory="org.granite.generator.as3.BVEntityFactory">
+                                    <translator java="com.wineshop" client="com.wineshop.client"/>
+                                    <classpath>
+                                        <path refid="maven.plugin.classpath"/>
+                                    </classpath>
+                                    <fileset dir="${basedir}/../java/target/classes">
+                                        <include name="**/entities/*.class"/>
+                                        <include name="**/services/*Service.class"/>
+                                        <include name="**/services/*Repository.class"/>
+                                    </fileset>
+                                </gfx>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.ant</groupId>
+                        <artifactId>ant</artifactId>
+                        <version>1.8.2</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.hibernate.javax.persistence</groupId>
+                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <version>1.0.1.Final</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>javax.validation</groupId>
+                        <artifactId>validation-api</artifactId>
+                        <version>1.0.0.GA</version>
+                    </dependency> 
+                    <dependency>
+                        <groupId>javax.jdo</groupId>
+                        <artifactId>jdo2-api</artifactId>
+                        <version>2.3-eb</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>1.6.0</version>
+                    </dependency> 
+                    <dependency>
+                        <groupId>antlr</groupId>
+                        <artifactId>antlr</artifactId>
+                        <version>2.7.7</version>
+                    </dependency>     
+                    <dependency>
+                        <groupId>asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>2.2.3</version>
+                    </dependency> 
+                    <dependency>
+                        <groupId>com.thoughtworks.xstream</groupId>
+                        <artifactId>xstream</artifactId>
+                        <version>1.2.2</version>
+                    </dependency> 
+                    <dependency>
+                        <groupId>org.springframework.data</groupId>
+                        <artifactId>spring-data-jpa</artifactId>
+                        <version>1.1.0.RELEASE</version>
+                    </dependency> 
+                    <dependency>
+                        <groupId>org.graniteds</groupId>
+                        <artifactId>granite-core</artifactId>
+                        <version>${graniteds.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.graniteds</groupId>
+                        <artifactId>granite-generator-share</artifactId>
+                        <version>${graniteds.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.graniteds</groupId>
+                        <artifactId>granite-generator</artifactId>
+                        <version>${graniteds.version}</version>
+                    </dependency>
+			        <dependency>
+			            <groupId>com.wineshop</groupId>
+			            <artifactId>shop-admin-javafx-java</artifactId>
+			            <version>1.0-SNAPSHOT</version>
+			            <type>jar</type>
+			        </dependency>
+                </dependencies>
+            </plugin>
+            
+            <plugin>
+		        <groupId>org.codehaus.mojo</groupId>
+		        <artifactId>build-helper-maven-plugin</artifactId>
+		        <version>1.1</version>
+		        <executions>
+                    <execution>
+                        <id>add-source</id>
+		                <phase>generate-sources</phase>
+		                <goals>
+                            <goal>add-source</goal>
+		                </goals>
+		                <configuration>
+			                <sources>
+	                            <source>${project.build.directory}/generated-sources/gfx</source>
+	                        </sources>
+		                </configuration>
+		            </execution>
+		        </executions>
+		    </plugin>
+            
+            <plugin>
+                <!-- copy all dependencies of your app to target folder-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.3</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                        </configuration>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <JavaFX-Version>${javafx.version}+</JavaFX-Version>
+                            <Main-Class>com.wineshop.client.Main</Main-Class>
+                            <implementation-version>1.0</implementation-version>
+                            <JavaFX-Application-Class>com.wineshop.client.Main</JavaFX-Application-Class>
+                            <Class-Path>javafx-${javafx.version}.jar</Class-Path>
+                        </manifestEntries>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

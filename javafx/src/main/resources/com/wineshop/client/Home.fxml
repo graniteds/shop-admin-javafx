@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?language javascript?>
+<?import java.lang.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane id="BorderPane" prefHeight="500" prefWidth="700" xmlns:fx="http://javafx.com/fxml" fx:controller="com.wineshop.client.Home">
+	<top>
+		<BorderPane id="AppBar" style="-fx-padding: 5px 0px 15px 0px">
+			<left>
+				<Label text="GraniteDS JavaFX Application shop-admin-javafx" style="-fx-font-size: 24px"/>
+			</left>
+			<right>
+				<HBox spacing="10">
+					<children>
+						<Label text="Connected" visible="${serverSession.status.connected}"/>
+						<Label text="Busy" visible="${serverSession.status.busy}"/>
+					</children>
+				</HBox>
+			</right>
+		</BorderPane>
+	</top>
+    <center>
+    	<HBox spacing="10">
+    		<children>
+    			<VBox spacing="10">
+    				<children>
+				        <HBox spacing="10">
+				            <children>
+				                <TextField fx:id="fieldHello" prefColumnCount="20" onAction="#hello"/>
+				                <Button text="Welcome" onAction="#hello"/>
+				            </children>
+				        </HBox>
+                        
+                        <Label fx:id="labelMessage" style="-fx-text-fill: red" visible="false" managed="false"/>
+				        
+				        <ListView fx:id="listWelcomes" layoutX="10" layoutY="40"/>
+				  	</children>
+				</VBox>
+			</children>
+		</HBox>
+    </center>
+</BorderPane>

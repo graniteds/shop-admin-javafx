@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?language javascript?>
+<?import java.lang.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane id="BorderPane" prefHeight="400" prefWidth="640" xmlns:fx="http://javafx.com/fxml" fx:controller="com.wineshop.client.Login">
+    <top>
+		<Label fx:id="titleForm" text="Log in"/>
+	</top>
+	<center>
+		<GridPane hgap="4" vgap="4">
+			<children>
+				<Label text="Username" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+				<TextField fx:id="fieldUsername" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+				
+				<Label text="Password" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+				<PasswordField fx:id="fieldPassword" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+				
+				<Label fx:id="labelMessage" visible="false" managed="false" style="-fx-text-fill: red"
+				    GridPane.columnIndex="2" GridPane.rowIndex="3" />
+				
+				<HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="4" GridPane.columnSpan="2">
+					<children>
+						<Button text="Login" onAction="#login"/>
+					</children>
+				</HBox>
+			</children>
+		</GridPane>
+    </center>
+</BorderPane>
