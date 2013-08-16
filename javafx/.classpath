@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+  <classpathentry kind="src" path="src/main/java" including="**/*.java"/>
+  <classpathentry kind="src" path="target/generated-sources/gfx" including="**/*.java"/>
+  <classpathentry kind="src" path="src/main/resources" excluding="**/*.java"/>
+  <classpathentry kind="output" path="target/classes"/>
+  <classpathentry kind="var" path="M2_REPO/javax/validation/validation-api/1.0.0.GA/validation-api-1.0.0.GA.jar" sourcepath="M2_REPO/javax/validation/validation-api/1.0.0.GA/validation-api-1.0.0.GA-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/javax/inject/javax.inject/1/javax.inject-1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/javax/enterprise/cdi-api/1.0-SP4/cdi-api-1.0-SP4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/javax/annotation/jsr250-api/1.0/jsr250-api-1.0.jar"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="lib" path="C:/Dev/jdk1.7.0_15/jre/lib/jfxrt.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-core/3.1.4.RELEASE/spring-core-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-asm/3.1.4.RELEASE/spring-asm-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar" sourcepath="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-beans/3.1.4.RELEASE/spring-beans-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-context/3.1.4.RELEASE/spring-context-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-aop/3.1.4.RELEASE/spring-aop-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/aopalliance/aopalliance/1.0/aopalliance-1.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-expression/3.1.4.RELEASE/spring-expression-3.1.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/hibernate/hibernate-validator/4.3.0.Final/hibernate-validator-4.3.0.Final.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/jboss/logging/jboss-logging/3.1.0.CR2/jboss-logging-3.1.0.CR2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/cglib/cglib/2.2.2/cglib-2.2.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/asm/asm/3.3.1/asm-3.3.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sf/extcos/extcos/0.3b/extcos-0.3b.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.6.2/slf4j-api-1.6.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/asm/asm-all/3.2/asm-all-3.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpasyncclient/4.0-beta4/httpasyncclient-4.0-beta4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpcore/4.3-beta2/httpcore-4.3-beta2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpcore-nio/4.3-beta2/httpcore-nio-4.3-beta2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpclient/4.3-beta1/httpclient-4.3-beta1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.6/commons-codec-1.6.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/eclipse/jetty/jetty-client/8.1.7.v20120910/jetty-client-8.1.7.v20120910.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/eclipse/jetty/jetty-http/8.1.7.v20120910/jetty-http-8.1.7.v20120910.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/eclipse/jetty/jetty-io/8.1.7.v20120910/jetty-io-8.1.7.v20120910.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/eclipse/jetty/jetty-util/8.1.7.v20120910/jetty-util-8.1.7.v20120910.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/eclipse/jetty/jetty-websocket/8.1.7.v20120910/jetty-websocket-8.1.7.v20120910.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/graniteds/granite-client/3.0.0.M3/granite-client-3.0.0.M3.jar" sourcepath="M2_REPO/org/graniteds/granite-client/3.0.0.M3/granite-client-3.0.0.M3-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/C:/Users/william/.m2/repository/org/graniteds/granite-client/3.0.0.M3/granite-client-3.0.0.M3-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/org/graniteds/granite-client-base/3.0.0.M3/granite-client-base-3.0.0.M3.jar" sourcepath="M2_REPO/org/graniteds/granite-client-base/3.0.0.M3/granite-client-base-3.0.0.M3-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/C:/Users/william/.m2/repository/org/graniteds/granite-client-base/3.0.0.M3/granite-client-base-3.0.0.M3-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/org/jboss/spec/javax/interceptor/jboss-interceptors-api_1.1_spec/1.0.0.Beta1/jboss-interceptors-api_1.1_spec-1.0.0.Beta1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/graniteds/granite-client-javafx/3.0.0.M3/granite-client-javafx-3.0.0.M3.jar" sourcepath="M2_REPO/org/graniteds/granite-client-javafx/3.0.0.M3/granite-client-javafx-3.0.0.M3-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/C:/Users/william/.m2/repository/org/graniteds/granite-client-javafx/3.0.0.M3/granite-client-javafx-3.0.0.M3-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/org/graniteds/granite-client-tide/3.0.0.M3/granite-client-tide-3.0.0.M3.jar" sourcepath="M2_REPO/org/graniteds/granite-client-tide/3.0.0.M3/granite-client-tide-3.0.0.M3-sources.jar"/>
+</classpath>

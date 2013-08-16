@@ -32,7 +32,6 @@ import javafx.scene.control.TextField;
 
 import javax.inject.Inject;
 
-import org.granite.client.tide.data.DataObserver;
 import org.granite.client.tide.events.TideEvent;
 import org.granite.client.tide.events.TideEventObserver;
 import org.granite.client.tide.javafx.spring.Identity;
@@ -60,9 +59,6 @@ public class Login implements Initializable, TideEventObserver {
 	
 	@Inject
 	private Identity identity;
-	
-	@Inject
-	private DataObserver welcomeTopic;
 	
 	
 	@SuppressWarnings("unused")
@@ -92,13 +88,7 @@ public class Login implements Initializable, TideEventObserver {
 
 	@Override
 	public void handleEvent(TideEvent event) {
-		if (ServerSession.LOGIN.equals(event.getType())) {
-			welcomeTopic.subscribe();
-		}
-		else if (ServerSession.LOGOUT.equals(event.getType())) {
-			welcomeTopic.unsubscribe();
-		}
-		else if (ServerSession.SESSION_EXPIRED.equals(event.getType())) {
+		if (ServerSession.SESSION_EXPIRED.equals(event.getType())) {
 			labelMessage.setVisible(true);
 			labelMessage.setText("Session expired");
 		}

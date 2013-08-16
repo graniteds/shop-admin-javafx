@@ -31,8 +31,6 @@ import javafx.stage.Stage;
 import javax.inject.Inject;
 
 import org.granite.client.tide.ContextManager;
-import org.granite.client.tide.data.DataObserver;
-import org.granite.client.tide.data.EntityManager;
 import org.granite.client.tide.javafx.JavaFXApplication;
 import org.granite.client.tide.javafx.JavaFXServerSessionStatus;
 import org.granite.client.tide.javafx.TideFXMLLoader;
@@ -125,14 +123,6 @@ public class Main extends Application {
     	public App init() {
     		return new App();
     	}    	
-    	
-    	/**
-    	 * Sample Gravity observer topic
-    	 */
-    	@Bean
-    	public DataObserver welcomeTopic(ServerSession serverSession, EntityManager entityManager) {
-    		return new DataObserver(serverSession, entityManager);
-    	}
     }
     
     /**
@@ -148,9 +138,6 @@ public class Main extends Application {
     	
     	@Inject
     	private ServerSession serverSession;
-    	
-    	@Inject
-    	private DataObserver welcomeTopic;
     	
     	
     	public void start(final Stage stage) throws Exception {
