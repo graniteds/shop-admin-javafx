@@ -46,9 +46,6 @@
     <!-- Configuration of GraniteDS -->
     <graniteds:server-filter url-pattern="/*" tide="true"/>
     
-    <!-- Simple messaging destination for data push -->
-    <graniteds:messaging-destination id="welcomeTopic" no-local="true" session-selector="true"/>
-    
     <!-- Publish JPA changes though AOP so even changes happening outside GraniteDS are dispatched -->
     <graniteds:tide-data-publishing-advice mode="aspectj"/>
     
