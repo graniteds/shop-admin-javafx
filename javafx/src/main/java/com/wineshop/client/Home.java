@@ -24,9 +24,6 @@ import java.net.URL;
 import java.util.Calendar;
 import java.util.ResourceBundle;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -50,9 +47,13 @@ import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.converter.IntegerStringConverter;
 
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
 import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.collections.javafx.TableViewSortAdapter;
 import org.granite.client.tide.javafx.ManagedEntity;
+import org.granite.client.tide.javafx.spring.Identity;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
@@ -115,6 +116,9 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	private ManagedEntity<Vineyard> vineyard;
 	
 	@Inject
+	private Identity identity;
+	
+	@Inject
 	private VineyardRepository vineyardRepository;
     
     @Inject
@@ -169,8 +173,11 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 		});
 		
 		buttonDelete.visibleProperty().bind(vineyard.savedProperty());
+		buttonDelete.disableProperty().bind(
+				Bindings.not(identity.ifAllGranted("ROLE_ADMIN")));
 		buttonSave.disableProperty().bind(Bindings.not(vineyard.dirtyProperty()));
-		buttonCancel.disableProperty().bind(Bindings.not(Bindings.or(vineyard.savedProperty(), vineyard.dirtyProperty())));
+		buttonCancel.disableProperty().bind(
+				Bindings.not(Bindings.or(vineyard.savedProperty(), vineyard.dirtyProperty())));
 		
 		// Link the table selection and the entity instance in the form 
 		select(null);

@@ -18,6 +18,7 @@
 					<children>
 						<Label text="Connected" visible="${serverSession.status.connected}"/>
 						<Label text="Busy" visible="${serverSession.status.busy}"/>
+						<Button text="Logout" onAction="identity.logout(null)"/>
 					</children>
 				</HBox>
 			</right>
