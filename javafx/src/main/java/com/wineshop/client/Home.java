@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.Calendar;
 import java.util.ResourceBundle;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import javafx.beans.binding.Bindings;
@@ -31,8 +32,11 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -40,6 +44,8 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.converter.IntegerStringConverter;
@@ -51,6 +57,9 @@ import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
 import org.granite.client.tide.spring.TideApplicationEvent;
+import org.granite.client.validation.NotifyingValidatorFactory;
+import org.granite.client.validation.javafx.FormValidator;
+import org.granite.client.validation.javafx.ValidationResultEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
@@ -73,6 +82,9 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 
 	@FXML
 	private TableView<Vineyard> tableVineyards;
+	
+	@FXML
+	private Parent formVineyard;
 	
 	@FXML
 	private Label labelFormVineyard;
@@ -104,6 +116,18 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	
 	@Inject
 	private VineyardRepository vineyardRepository;
+    
+    @Inject
+    private NotifyingValidatorFactory validatorFactory;
+	
+	private FormValidator formValidator;
+	
+	
+	@SuppressWarnings("unused")
+	@PostConstruct
+	private void init() {
+	    formValidator = new FormValidator(validatorFactory);
+	}
 	
 	
 	@Override
@@ -156,6 +180,30 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 				select(newSelection);
 			}			
 		});
+		
+		formVineyard.addEventHandler(ValidationResultEvent.INVALID, new EventHandler<ValidationResultEvent>() {
+			@Override
+			public void handle(ValidationResultEvent event) {
+				((Node)event.getTarget()).setStyle("-fx-border-color: red");
+				if (event.getTarget() instanceof TextInputControl && event.getErrorResults() != null && event.getErrorResults().size() > 0) {
+				    Tooltip tooltip = new Tooltip(event.getErrorResults().get(0).getMessage());
+				    tooltip.setAutoHide(true);
+				    ((TextInputControl)event.getTarget()).setTooltip(tooltip);
+				}
+			}
+		});
+        formVineyard.addEventHandler(ValidationResultEvent.VALID, new EventHandler<ValidationResultEvent>() {
+            @Override
+            public void handle(ValidationResultEvent event) {
+                ((Node)event.getTarget()).setStyle("-fx-border-color: null");
+                if (event.getTarget() instanceof TextInputControl) {
+                    Tooltip tooltip = ((TextInputControl)event.getTarget()).getTooltip();
+                    if (tooltip != null && tooltip.isActivated())
+                        tooltip.hide();
+                    ((TextInputControl)event.getTarget()).setTooltip(null);
+                }
+            }
+        });
 	}
 	
 	
@@ -176,6 +224,8 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 		if (vineyard == this.vineyard.getInstance() && this.vineyard.getInstance() != null)
 			return;
 		
+		formValidator.setForm(null);
+		
 		this.vineyard.reset();
 		
 		if (vineyard != null)
@@ -187,6 +237,8 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 			newVineyard.getAddress().setAddress("");			
 			this.vineyard.setInstance(newVineyard);
 		}
+		
+		formValidator.setForm(formVineyard);
 	}
 	
 	/**
@@ -194,6 +246,9 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	 */
 	@FXML @SuppressWarnings("unused")
 	private void save(ActionEvent event) {
+		if (!validatorFactory.getValidator().validate(this.vineyard.getInstance()).isEmpty())
+			return;
+		
 		final boolean isNew = !vineyard.isSaved();
 		vineyardRepository.save(vineyard.getInstance(), 
 			new SimpleTideResponder<Vineyard>() {
