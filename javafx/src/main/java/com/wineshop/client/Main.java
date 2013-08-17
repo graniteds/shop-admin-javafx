@@ -32,6 +32,7 @@ import javax.inject.Inject;
 
 import org.granite.client.tide.ContextManager;
 import org.granite.client.tide.collections.javafx.PagedQuery;
+import org.granite.client.tide.data.DataObserver;
 import org.granite.client.tide.data.EntityManager;
 import org.granite.client.tide.javafx.JavaFXApplication;
 import org.granite.client.tide.javafx.JavaFXServerSessionStatus;
@@ -153,6 +154,15 @@ public class Main extends Application {
     	@Bean @Scope("view")
     	public ManagedEntity<Vineyard> vineyard(EntityManager entityManager) {
     	    return new ManagedEntity<Vineyard>(entityManager);
+    	}
+    	
+    	/**
+    	 * Client declaration of the data publishing topic
+    	 */
+    	@Bean
+    	public DataObserver wineshopTopic(ServerSession serverSession,
+    		    EntityManager entityManager) {
+    		return new DataObserver(serverSession, entityManager);
     	}
     }
     
