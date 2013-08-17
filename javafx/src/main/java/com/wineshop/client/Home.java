@@ -87,6 +87,9 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	private ListView<Wine> listWines;
 	
 	@FXML
+	private Button buttonSave;
+	
+	@FXML
 	private Button buttonDelete;
 
 	@FXML
@@ -141,8 +144,9 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 		    }
 		});
 		
-		buttonCancel.disableProperty().bind(Bindings.not(vineyard.savedProperty()));
 		buttonDelete.visibleProperty().bind(vineyard.savedProperty());
+		buttonSave.disableProperty().bind(Bindings.not(vineyard.dirtyProperty()));
+		buttonCancel.disableProperty().bind(Bindings.not(Bindings.or(vineyard.savedProperty(), vineyard.dirtyProperty())));
 		
 		// Link the table selection and the entity instance in the form 
 		select(null);
@@ -171,6 +175,8 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	private void select(Vineyard vineyard) {
 		if (vineyard == this.vineyard.getInstance() && this.vineyard.getInstance() != null)
 			return;
+		
+		this.vineyard.reset();
 		
 		if (vineyard != null)
 			this.vineyard.setInstance(vineyard);
