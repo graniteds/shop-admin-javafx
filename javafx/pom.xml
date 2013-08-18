@@ -121,7 +121,20 @@
             <version>${graniteds.version}</version>
             <type>jar</type>
         </dependency>
+		<dependency>
+			<groupId>javafx-ui-sandbox</groupId>
+			<artifactId>javafx-dialogs</artifactId>
+			<version>0.0.3</version>
+			<type>jar</type>
+		</dependency>
     </dependencies>
+     
+    <repositories>
+        <repository>
+            <id>graniteds-tutorial-dependencies</id>
+            <url>http://dl.bintray.com/graniteds/tutorial-dependencies</url>
+        </repository>
+    </repositories>
   
     <build>
         <finalName>shop-admin-javafx</finalName>

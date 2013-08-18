@@ -25,6 +25,9 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Dialogs;
+import javafx.scene.control.Dialogs.DialogOptions;
+import javafx.scene.control.Dialogs.DialogResponse;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
@@ -32,6 +35,8 @@ import javax.inject.Inject;
 
 import org.granite.client.tide.ContextManager;
 import org.granite.client.tide.collections.javafx.PagedQuery;
+import org.granite.client.tide.data.Conflicts;
+import org.granite.client.tide.data.DataConflictListener;
 import org.granite.client.tide.data.DataObserver;
 import org.granite.client.tide.data.EntityManager;
 import org.granite.client.tide.javafx.JavaFXApplication;
@@ -178,6 +183,9 @@ public class Main extends Application {
     	private ContextManager contextManager;
     	
     	@Inject
+    	private EntityManager entityManager;
+    	
+    	@Inject
     	private ServerSession serverSession;
     	
     	
@@ -215,6 +223,23 @@ public class Main extends Application {
 					message.setVisible(true);
     			}
             });
+            
+    	    // Setup conflict handling
+    		entityManager.addListener(new DataConflictListener() {			
+    			@Override
+    			public void onConflict(EntityManager entityManager, Conflicts conflicts) {
+    				DialogResponse response = Dialogs.showConfirmDialog(stage, 
+    						"Accept incoming data or keep local changes ?", 
+    						"Conflict with another user modifications", 
+    						"Conflict", DialogOptions.YES_NO
+    				);
+    				if (response == DialogResponse.YES)
+    					conflicts.acceptAllServer();
+    				else
+    					conflicts.acceptAllClient();
+    			}			
+    		});
+
     	}
     	
     	public void stop() throws Exception {
