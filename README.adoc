@@ -1,0 +1,1319 @@
+== Data Management Tutorial with JavaFX
+
+The following tutorial demonstrates most of the data management features of GraniteDS for JavaFX,
+and is an updated version to GraniteDS 3.0.0.M3 of the previous tutorial published http://granitedataservices.com/?p=1593[here].
+
+What is called data management is a set of features that allow to work easily with data objects on the client and 
+simplify or even remove the boilerplate code necessary to client/server integration. These are mostly features provided 
+by the client libraries of GraniteDS.
+
+The example project is hosted on GitHub at https://github.com/graniteds/shop-admin-javafx and requires Maven 3.x 
+for its build. It is also required to use a JDK 1.7.0_07 or better so JavaFX is already installed on the Java runtime. 
+You may have to set your +JAVA_HOME+ environment variable if you have many JDKs installed.
+
+Here are the few design principles that we are going to follow in this tutorial, and that are recommended when using
+GraniteDS with JavaFX:
+
+* Develop the service layer without taking care of the client. For prototyping you can even use bare 
+Spring Data JPA repositories as is, and add additional layers later.
+
+* Use the model and service classes that have been generated from the server classes. You may wonder why you would
+need or want to use different classes for the model on the client and the server, but remember that server classes 
+are JPA entities (with all the related annotations and other stuff), while client classes are JavaFX bindable beans
+using +Property+ properties and all. You surely don't want JavaFX properties in your server application, or 
+JPA dependencies on your client application. Usually you would ensure this decoupling with an intermediate layer of
+data transfer objects, but here this won't be necessary at all because GraniteDS transparently converts JPA to and 
+from JavaFX entities in the same wire format (using the binary JMF encoding).
+
+* Use JavaFX data binding as much as possible, which allows for a more dynamic programming model and UI and helps
+a lot when working with asynchronous remote operations.
+
+* Use a dependency injection framework on the client application. GraniteDS can be integrated with Spring 
+or CDI/Weld on the client. Here we will use Spring, which is consistent with using Spring on the server (but not 
+mandatory, you can use Weld on the client and Spring on the server, or whatever supported combination, but obviously 
+some do not make much sense from a development organization point of view). 
+Of course, you can also use GraniteDS without any DI container, in this case it includes a built-in very very (very) 
+basic client application container which might be enough for some applications.
+
+It will be useful to follow the tutorial that you have an Eclipse installation, ideally with the M2E plugin installed 
+(to automatically update Maven dependencies). Spring Tools Suite is a good choice, all the more that we are going to 
+use the Spring framework on both the server and the client.
+
+For the impatient, you can simply clone the project and build it.
+From a console, type the following:
+
+----
+git clone git://github.com/graniteds/shop-admin-javafx.git
+cd shop-admin-javafx
+mvn install
+----
+
+To start the embedded Jetty server, type this:
+
+----
+cd webapp
+mvn jetty:run
+----
+
+To start the JavaFX client application, open a second console and type the following:
+
+----
+cd shop-admin-javafx/javafx
+java -jar target/shop-admin-javafx.jar
+----
+
+When the application shows up, just logon as +admin+/+admin+. It's a simple CRUD example which allows searching, 
+creating and modifying vineyards and wines.
+
+The application is definitely ugly but its goal is simply to demonstrate the following features:
+
+. Create an application from the archetype
+. Implement basic CRUD with a Spring Data JPA repository
+. Add support for lazy-loading of JPA x-to-many associations
+. Add dirty-checking / undo
+. Implement client validation with the Bean Validation API
+. Implement security
+. Add real-time data synchronization
+. Add conflicts detection and resolution
+
+Each step corresponds to a tag on the GitHub project so you can see what has been changed at each step.
+
+So now let's start from scratch :
+
+=== Step 1 : Create the Project from the Maven Archetype
+
+If you have cloned the project from GitHub, just do this:
+
+----
+git checkout step1
+----
+
+This first step has been simply created by issuing the following command:
+
+----
+mvn archetype:generate
+-DarchetypeGroupId=org.graniteds.archetypes
+-DarchetypeArtifactId=graniteds-tide-javafx-spring-jpa-hibernate
+-DarchetypeVersion=2.0.0.M3
+-DgroupId=com.wineshop
+-DartifactId=shop-admin-javafx
+-Dversion=1.0-SNAPSHOT
+-Dpackage=com.wineshop
+----
+
+If you look at the result, the archetype has created a Maven project with three modules:
+
+* +java+: the Spring server module
+* +webapp+: the Web application module
+* +javafx+: the JavaFX client module
+
+The Spring server module includes a suitable +persistence.xml+ JPA descriptor and a basic domain model 
+and service (+Welcome+ and +WelcomeService+).
+
+The Web module includes the necessary Spring configuration for JPA with a simple HQL datasource, Spring Security 
+and GraniteDS. It also includes a +web.xml+ configured with a Spring dispatcher servlet, and suitable Gravity 
+Comet and WebSocket configurations for Jetty 8. 
+The +pom.xml+ of this module also includes the necessary configuration to run an embedded Jetty 8.
+
+Finally the JavaFX module includes a +pom.xml+ with the configuration to generate JavaFX client model from 
+the JPA model with the GraniteDS +gfx+ ant task, and to package the application as an executable jar. 
+It also includes a skeleton JavaFX client application with the necessary Spring container and GraniteDS configurations.
+
+The default generated application is basically a slighly improved Hello World where the names that are sent are 
+stored in the database and pushed to all clients in real-time (you can check that the push works by running many 
+JavaFX clients simultaneously).
+
+To start the embedded Jetty server, type this:
+
+----
+cd webapp
+mvn jetty:run
+----
+
+To start a JavaFX client application, open another console and type the following:
+
+----
+cd shop-admin-javafx/javafx
+java -jar target/shop-admin-javafx.jar
+----
+
+You can log in with +admin+/+admin+ or +user+/+user+.
+
+Before continuing, we will just remove some of the generated stuff from the project and eclipsify it.
+The tag +step1b+ contains a cleaned up version of the project that you can import in Eclipse (actually you will get 
+3 projects and one 'parent' folder).
+
+----
+git checkout step1b
+----
+
+=== Step 2 : Implement Basic CRUD Functionality
+
+This will be the longest step as we are creating most of the application.
+
+==== The Spring Data JPA server application
+
+First we have to build the server application. As this tutorial is not about creating server applications, we are just
+going to define a JPA model and create a Spring Data JPA repository to access the model.
+
+.com/wineshop/entities/Vineyard.java
+[source,java]
+----
+@Entity
+public class Vineyard extends AbstractEntity {
+
+    private static final long serialVersionUID = 1L;
+
+    @Basic
+    private String name;
+
+    @Embedded
+    private Address address = new Address();
+
+    @OneToMany(cascade=CascadeType.ALL, mappedBy="vineyard",
+        orphanRemoval=true)
+    private List<Wine> wines;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String nom) {
+        this.name = nom;
+    }
+
+    public Address getAddress() {
+        return address;
+    }
+
+    public void setAddress(Address address) {
+        this.address = address;
+    }
+
+    public List<Wine> getWines() {
+        return wines;
+    }
+
+    public void setWines(List<Wine> wines) {
+        this.wines = wines;
+    }
+}
+----
+
+.com/wineshop/entities/Wine.java
+[source,java]
+----
+@Entity
+public class Wine extends AbstractEntity {
+
+    private static final long serialVersionUID = 1L;
+
+    public static enum Type {
+        RED,
+        WHITE,
+        ROSE
+    }
+
+    @ManyToOne
+    private Vineyard vineyard;
+
+    @Basic
+    private String name;
+
+    @Basic
+    private Integer year;
+
+    @Enumerated(EnumType.STRING)
+    private Type type;
+
+    public Vineyard getVineyard() {
+        return vineyard;
+    }
+
+    public void setVineyard(Vineyard vineyard) {
+        this.vineyard = vineyard;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer annee) {
+        this.year = annee;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String nom) {
+        this.name = nom;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+}
+----
+
+.com/wineshop/entities/Address.java
+[source,java]
+----
+@Embeddable
+public class Address implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @Basic
+    private String address;
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String adresse) {
+        this.address = adresse;
+    }
+}
+----
+
+The main thing that you can note is that these entities extend the +AbstractEntity+ class provided by the archetype.
++AbstractEntity+ simply has a +Long+ +id+ field, a +Long+ +version+ field and a +uid+ field. 
+
+We are going to mostly replace it by +AbstractPersistable+ from Spring Data but still we have to keep it 
+because of the +uid+ property. This +uid+ field is a global persistent identifier that is to be unique through all 
+client and server layers, and is thus persisted in the database, but is not necessarily the database key. 
+The GraniteDS data management framework is able to work is most use cases without a specific +uid+ field 
+and use the entity +id+ but then there will be some restrictions 
+(see the http://www.graniteds.org/public/docs/3.0.0/docs/reference/java/en-US/html/graniteds.datamanagement.html#data.jpamanaged[documentation] 
+for details).
+
+Next we are going to define the Spring Data repository, but first we have to add Spring Data in our dependencies 
+in the maven POM
+
+.java/pom.xml
+[source,xml]
+----
+<dependency>
+  <groupId>org.springframework.data</groupId>
+  <artifactId>spring-data-jpa</artifactId>
+  <version>1.3.0.RELEASE</version>
+<dependency>
+----
+
+We then change the +AbstractEntity+ to extend +AbstractPersistable+, which is not really necessary but follows
+the Spring Data way of doing things:
+
+.AbstractEntity.java
+[source,java]
+----
+@MappedSuperclass
+@EntityListeners({AbstractEntity.AbstractEntityListener.class,
+    DataPublishListener.class})
+public abstract class AbstractEntity extends AbstractPersistable {
+
+    private static final long serialVersionUID = 1L;
+
+    /* "UUID" and "UID" are Oracle reserved keywords -> "ENTITY_UID" */
+    @Column(name="ENTITY_UID", unique=true, nullable=false,
+        updatable=false, length=36)
+    private String uid;
+
+    @Version
+    private Integer version;
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return (o == this || (o instanceof AbstractEntity
+            && uid().equals(((AbstractEntity)o).uid())));
+    }
+
+    @Override
+    public int hashCode() {
+        return uid().hashCode();
+    }
+
+    public static class AbstractEntityListener {
+
+        @PrePersist
+        public void onPrePersist(AbstractEntity abstractEntity) {
+            abstractEntity.uid();
+        }
+    }
+
+    private String uid() {
+        if (uid == null)
+            uid = UUID.randomUUID().toString();
+        return uid;
+    }
+}
+----
+
+And define the repository interface :
+
+.com/wineshop/services/VineyardRepository.java
+[source,java]
+----
+@RemoteDestination
+@DataEnabled
+public interface VineyardRepository
+    extends FilterableJpaRepository {
+}
+----
+
+As you can see, this repository extends the specific GraniteDS +FilterableJpaRepository+ which is an extension 
+of the default Spring +JpaRepository+ that adds an extra finder method, +findByFilter+. 
+This +findByFilter+ is a kind of find by example implementation. We are still considering contributing this code 
+to Spring Data JPA to avoid a dependency on a GraniteDS implementation, or ditch it completely if Spring Data 
+comes with something similar or better in a future release.
+
+The +@RemoteDestination+ annotation indicates that the repository will be accessible remotely from our GraniteDS 
+client. In general enabling the whole repository is not what you would do for obvious security reasons and you would
+for example create a service in front of the repository but here we'll keep things simple.
+The +@DataEnabled+ annotation indicates that GraniteDS should track JPA data updates happening during the execution 
+of the service methods and propagate them to the client.
+
+Finally we have to register our repository in the Spring configuration:
+
+.webapp/src/main/webapp/WEB-INF/spring/app-jpa-config.xml
+[source,xml]
+----
+<jpa:repositories
+    base-package="com.wineshop.services"
+    factory-class="org.granite.tide.spring.data.FilterableJpaRepositoryFactoryBean"/>
+----
+
+There is a tag +step2a+ on the git project so you can see what has been changed since step 1.
+
+----
+git checkout step2a
+----
+
+Here the compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step1b...step2a
+
+Now you can rebuild and restart the Jetty server:
+
+----
+mvn install
+cd webapp
+mvn jetty:run
+----
+
+You may have noticed that the gfx generator is ran as part of the maven build. If you have a look at the 
+JavaFX module, you can see some newly generated classes for the client entities and a client proxy for the 
+Spring Data repository, in the packages +com.wineshop.client.entities+ and +com.wineshop.client.services+. 
+That will be useful for the next part, that is developing the client.
+
+==== The JavaFX Client
+
+Now the most interesting part, the JavaFX client. To simplify things, we are going to keep some elements 
+of the skeleton application, the +Main+ and the +Login+ screens. 
+We are mostly going to change the +Home.fxml+ screen and the +Home.java+ controller.
+
+Before going further, let's have a short look at two important configuration elements that have been generated 
+from the archetype:
+
+The context manager is the main component that integrates GraniteDS, Spring and JavaFX:
+
+[source,java]
+----
+@Bean
+public SpringContextManager contextManager(SpringEventBus eventBus) {
+	return new SpringContextManager(new JavaFXApplication(), eventBus);
+}
+----
+
+The server session represents the current network connection between the client and a particular server. It will be 
+referenced by all other components requiring an access to the network:
+
+[source,java]
+----
+@Bean
+public ServerSession serverSession() throws Exception {
+	ServerSession serverSession = new ServerSession("/shop-admin-javafx", "localhost", 8080);
+    serverSession.setUseWebSocket(false);
+    serverSession.addRemoteAliasPackage("com.wineshop.client.entities");
+    return serverSession;
+}
+----
+
+
+The UI will be very basic, a table view to display the list of vineyards, and a form to create and modify them.
+
+===== The Table View
+
+First we add the table. Here is the relevant part of the FXML:
+
+.Home.fxml
+[source,xml]
+----
+<!-- Search Bar -->
+<HBox spacing="10">
+    <children>
+        <TextField fx:id="fieldSearch" prefColumnCount="20"
+            onAction="#search"/>
+        <Button text="Search" onAction="#search"/>
+    </children>
+</HBox>
+
+<TableView fx:id="tableVineyards" layoutX="10" layoutY="40"
+    items="$vineyards">
+    <columns>
+        <TableColumn fx:id="columnName" text="Name" 
+            prefWidth="320" sortable="true">
+            <cellValueFactory>
+                <PropertyValueFactory property="name"/>
+            </cellValueFactory>
+        </TableColumn> 
+    </columns>
+</TableView>
+----
+
+We simply define a table view control with a single column mapped to the +name+ property of the +Vineyard+ entity, 
+and a search bar with a field and a search button.
+The data source for the table view is defined as +$vineyards+, that means that we have to bind it to a collection 
+of the same name in the controller. If you look at the +Main+ class coming from the archetype, it uses the custom 
++TideFXMLLoader+ that automatically exposes all beans annotated with +@Named+ in the Spring context as FXML variables. 
+So we just create a Spring bean named +vineyards+ in the application configuration (note that +PagedQuery+ is already
+annotated with +@Named+):
+
+.Main.java
+[source,java]
+----
+@Bean @Scope("view")
+public PagedQuery vineyards(ServerSession serverSession)
+    throws Exception {
+    PagedQuery vineyards =
+        new PagedQuery(serverSession);
+    vineyards.setMethodName("findByFilter");
+    vineyards.setMaxResults(25);
+    vineyards.setRemoteComponentClass(VineyardRepository.class);
+    vineyards.setElementClass(Vineyard.class);
+    vineyards.setFilterClass(Vineyard.class);
+    return vineyards;
+}
+----
+
+We use the GraniteDS +PagedQuery+ component which is basically an observable list wired to a server-side finder 
+method, here the +findByFilter+ method of the Spring Data repository. This component is able to handle paging 
+automatically thus we have to define a +maxResults+ property which defines the maximum number of elements that will 
+be retrieved from the server at each remote call.
+
++PagedQuery+ also handles remote filtering and sorting. So we next have to wire it to the view in the +Home.java+ 
+controller initialization, by using Spring injection:
+
+.Home.java
+[source,java]
+----
+@Inject
+private PagedQuery vineyards;
+
+...
+
+@Override
+public void initialize(URL url, ResourceBundle rb) {
+    vineyards.setSortAdapter(
+		new TableViewSortAdapter<Vineyard>(tableVineyards, Vineyard.class));
+	vineyards.getFilter().nameProperty()
+        .bindBidirectional(fieldSearch.textProperty());
+    ...
+}
+----
+
+These declarations bind the filter +name+ property to the search field and define the sort adapter which will propagate
+the sort defined by the user between the +TableView+ control and the +PagedQuery+ component.
+
+Finally we define the search action on the controller, which is just a call to the method +refresh+ on the +PagedQuery+ 
+component that will trigger a remote call to get an up-to-date data set:
+
+.Home.java
+[source,java]
+----
+@FXML
+private void search(ActionEvent event) {
+    vineyards.refresh();
+}
+----
+
+With this quite simple setup, we now have a fully functional table view on our remote +Vineyard+ entity.
+
+===== The Edit Form
+
+Next we have to build a form to create and modify objects. Here is the corresponding declaration in +Home.fxml+:
+
+.Home.fxml
+[source,xml]
+----
+<Label fx:id="labelFormVineyard" text="Create vineyard"/>
+<GridPane fx:id="formVineyard" hgap="4" vgap="4">
+	<children>
+		<Label text="Name" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+		<TextField fx:id="fieldName" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+		
+		<Label text="Address" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+		<TextField fx:id="fieldAddress" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+	</children>
+</GridPane>
+<!-- Button Bar -->
+<HBox spacing="10">
+	<children>
+		<Button fx:id="buttonSave" text="Save" onAction="#save"/>
+		<Button fx:id="buttonCancel" text="Cancel" onAction="#cancel"/>
+		<Button fx:id="buttonDelete" text="Delete" onAction="#delete"/>
+	</children>
+</HBox>
+----
+
+Nothing very fancy, just plain FXML that we now have to wire to the controller. To do this easily, we are going to
+use another built-in component of the framework: the +ManagedEntity+ component. Again we declare it in the
+application configuration and inject it in the controller to bind it to the UI:
+
+.Main.java
+[source,java]
+----
+@Bean @Scope("view")
+public ManagedEntity<Vineyard> vineyard(EntityManager entityManager) {
+	return new ManagedEntity<Vineyard>(entityManager);
+}
+----
+
+.Home.java
+[source,java]
+----	
+@Inject
+private ManagedEntity<Vineyard> vineyard;
+
+...
+
+@Override
+public void initialize(URL url, ResourceBundle bundle) {
+    ...
+	labelFormVineyard.textProperty()
+		.bind(Bindings.when(vineyard.savedProperty())
+			.then("Edit vineyard")
+			.otherwise("Create vineyard"));
+	
+	vineyard.instanceProperty().addListener(new ChangeListener<Vineyard>() {
+		@Override
+		public void changed(ObservableValue<? extends Vineyard> observable, 
+			Vineyard oldValue, Vineyard newValue) {
+			
+			if (oldValue != null) {
+				fieldName.textProperty()
+					.unbindBidirectional(oldValue.nameProperty());
+				fieldAddress.textProperty()
+					.unbindBidirectional(oldValue.getAddress().addressProperty());
+			}
+			if (newValue != null) {
+				fieldName.textProperty()
+					.bindBidirectional(newValue.nameProperty());
+				fieldAddress.textProperty()
+					.bindBidirectional(newValue.getAddress().addressProperty());
+			}
+		}
+	});
+}
+----
+
+The +instance+ property is relatively self-describing and is the currently managed instance. As we expect that the user
+can select one vineyard or another, we have to handle this event by unbinding the previous instance properties 
+from the form controls and then bind the new instance.
+
+The +saved+ property is another property of +ManagedEntity+ which indicated if the instance has been saved to the 
+database or not. It is more or less the equivalent of +version != null+ and we use it here to change the title of 
+the form.
+
+Finally, we have to initialize this managed instance somewhere. The following +select+ method will either create and
+initialize a new vineyard or select an existing vineyard:
+
+[source,java]
+----
+private void select(Vineyard vineyard) {
+	if (vineyard == this.vineyard.getInstance() && this.vineyard.getInstance() != null)
+		return;
+	
+	if (vineyard != null)
+		this.vineyard.setInstance(vineyard);
+	else {
+		Vineyard newVineyard = new Vineyard();
+		newVineyard.setName("");
+		newVineyard.setAddress(new Address());
+		newVineyard.getAddress().setAddress("");			
+		this.vineyard.setInstance(newVineyard);
+	}
+}
+----
+
+We can then use it to initialize the instance at the beginning and attach it to the selection in the list to change
+the managed instance when the user selects an element of the table view:
+
+[source,java]
+----
+@Override
+public void initialize(URL url, ResourceBundle bundle) {
+	...
+	
+	select(null);
+	tableVineyards.getSelectionModel().selectedItemProperty()
+		.addListener(new ChangeListener<Vineyard>() {
+		@Override
+		public void changed(ObservableValue<? extends Vineyard> property, 
+			Vineyard oldSelection, Vineyard newSelection) {
+			select(newSelection);
+		}			
+	});
+	
+	...
+}
+----
+
+We're almost done, finally we have to define the actions for the three buttons:
+
+[source,java]
+----
+@Inject
+private VineyardRepository vineyardRepository;
+
+...
+
+@FXML
+private void save(ActionEvent event) {
+	final boolean isNew = !vineyard.isSaved();
+    vineyardRepository.save(vineyard.get(),
+        new SimpleTideResponder() {
+            @Override
+            public void result(TideResultEvent tre) {
+                if (isNew)
+                    select(null);
+                else
+                    tableVineyards.getSelectionModel()
+                        .clearSelection();
+            }
+			
+            @Override
+            public void fault(TideFaultEvent tfe) {
+                System.out.println("Error: "
+                    + tfe.getFault().getFaultDescription());
+            }
+        }
+    );
+}
+----
+
+Basically we save the entity by calling the remote Spring Data repository that we get injected by Spring. 
+A suitable client proxy of class +VineyardRepository+ has been generated for the repository and is defined as a 
+Spring bean.
+On successful return, we either create a new empty entity with +select(null)+ or clear the table selection, which 
+will consequently clear the form and reset it in creation mode (due to the previously defined listener on the table
+selection).
+
+You can certainly notice that we call the remote repository but don't really care about the actual result of 
+the operation. However the created entities will automatically appear in the list because GraniteDS listens to 
+the JPA modification events and propagates them to the client as Spring application events. 
+The +PagedQuery+ listens to these client events and refreshes itself when needed. 
+Of course if you need to access the result objects for any reason, you can do it in the result handler.
+
+The +delete+ action is quite similar:
+
+[source,java]
+----
+@FXML
+private void delete(ActionEvent event) {
+    vineyardRepository.delete(vineyard.getInstance().getId(),
+        new SimpleTideResponder() {
+            @Override
+            public void result(TideResultEvent tre) {
+                tableVineyards.getSelectionModel().clearSelection();
+            }
+        }
+    );
+}
+----
+
+Finally the +cancel+ operation:
+
+[source,java]
+----
+@FXML
+private void cancel(ActionEvent event) {
+	if (tableVineyards.getSelectionModel().isEmpty())
+		select(null);
+	else
+		tableVineyards.getSelectionModel().clearSelection();
+}
+----
+
+The first step of the client application is now ready. You can get it with the tag +step2+ in the git repository:
+
+----
+git checkout step2
+----
+
+Here the compare view on GitHub: 
+https://github.com/graniteds/shop-admin-javafx/compare/step2a...step2
+
+You can now build it and run it, assuming your Jetty server it still running in another console:
+
+----
+cd javafx
+mvn clean install
+java -jar target/shop-admin-javafx.jar
+----
+
+=== Step 3: Support for JPA lazy associations
+
+You have maybe noticed that we simply didn't take care of the +wines+ association. It is never populated, saved 
+or rendered and that did not cause any problem to the application. GraniteDS is indeed able to properly serialize 
+and deserialize all lazy association so you simply don't have to care about them. What is lazy on the server stays 
+lazy on the client.
+
+Now we would like to edit the list of wines for our vineyards. We first add a list view to the edit form:
+
+.Home.fxml
+[source,xml]
+----
+<Label text="Wines" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+<HBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="3">
+	<children>
+		<ListView fx:id="listWines" maxHeight="150"/>
+ 
+		<VBox spacing="5">
+			<children>
+				<Button text="+" onAction="#addWine"/>
+				<Button text="-" onAction="#removeWine"/>
+			</children>
+		</VBox>
+	</children>
+</HBox>
+----
+
+Now in the controller, we have to bind the list of wines of the current vineyard to this list:
+
+[source,java]
+----
+@FXML
+private ListView listWines;
+
+@Override
+public void initialize(URL url, ResourceBundle bundle) {
+    ...
+	
+	vineyard.instanceProperty().addListener(new ChangeListener<Vineyard>() {
+		@Override
+		public void changed(ObservableValue<? extends Vineyard> observable, 
+			Vineyard oldValue, Vineyard newValue) {
+			if (oldValue != null) {
+				fieldName.textProperty()
+					.unbindBidirectional(oldValue.nameProperty());
+				fieldAddress.textProperty()
+					.unbindBidirectional(oldValue.getAddress().addressProperty());
+				listWines.setItems(null);
+			}
+			if (newValue != null) {
+				fieldName.textProperty()
+					.bindBidirectional(newValue.nameProperty());
+				fieldAddress.textProperty()
+					.bindBidirectional(newValue.getAddress().addressProperty());
+				listWines.setItems(newValue.getWines());
+			}
+		}
+	});
+	
+	...
+}
+----
+
+And add the actions to add and remove a wine from the list:
+
+[source,java]
+----
+@FXML
+private void addWine(ActionEvent event) {
+    Wine wine = new Wine();
+    wine.setVineyard(this.vineyard);
+    wine.setName("");
+    wine.setYear(Calendar.getInstance().get(Calendar.YEAR)-3);
+    wine.setType(Wine$Type.RED);
+    this.vineyard.getInstance().getWines().add(wine);
+}
+
+@FXML
+private void removeWine(ActionEvent event) {
+    if (!listWines.getSelectionModel().isEmpty())
+        this.vineyard.getInstance().getWines()
+			.remove(listWines.getSelectionModel().getSelectedIndex());
+}
+----
+
+Finally we have to setup the list to display and edit the properties of the +Wine+ objects:
+
+[source,java]
+----
+@Override
+public void initialize(URL url, ResourceBundle bundle) {
+	...
+	
+	listWines.setCellFactory(new Callback, ListCell>() {
+		public ListCell call(ListView listView) {
+			return new WineListCell();
+		}
+	});
+	
+	...
+}
+----
+
+[source,java]
+----
+private static class WineListCell extends ListCell {
+
+    private ChoiceTypeListener choiceTypeListener = null;
+
+    protected void updateItem(Wine wine, boolean empty) {
+        Wine oldWine = getItem();
+        if (oldWine != null && wine == null) {
+            HBox hbox = (HBox)getGraphic();
+
+            TextField fieldName = (TextField)hbox.getChildren().get(0);
+            fieldName.textProperty()
+                .unbindBidirectional(getItem().nameProperty());
+
+            TextField fieldYear = (TextField)hbox.getChildren().get(1);
+            fieldYear.textProperty()
+                .unbindBidirectional(getItem().yearProperty());
+
+            getItem().typeProperty().unbind();
+            getItem().typeProperty().removeListener(choiceTypeListener);
+            choiceTypeListener = null;
+
+            setGraphic(null);
+        }
+
+        super.updateItem(wine, empty);
+
+        if (wine != null && wine != oldWine) {
+            TextField fieldName = new TextField();
+            fieldName.textProperty()
+                .bindBidirectional(wine.nameProperty());
+
+            TextField fieldYear = new TextField();
+            fieldYear.setPrefWidth(40);
+            fieldYear.textProperty()
+                .bindBidirectional(wine.yearProperty(), new IntegerStringConverter());
+
+            ChoiceBox choiceType = new ChoiceBox(
+                FXCollections.observableArrayList(Wine$Type.values())
+            );
+            choiceType.getSelectionModel()
+                .select(getItem().getType());
+            getItem().typeProperty()
+                .bind(choiceType.getSelectionModel().selectedItemProperty());
+            choiceTypeListener = new ChoiceTypeListener(choiceType);
+            getItem().typeProperty()
+                .addListener(choiceTypeListener);
+
+            HBox hbox = new HBox();
+            hbox.setSpacing(5.0);
+            hbox.getChildren().add(fieldName);
+            hbox.getChildren().add(fieldYear);
+            hbox.getChildren().add(choiceType);
+            setGraphic(hbox);
+        }
+    }
+
+    private final static class ChoiceTypeListener
+        implements ChangeListener {
+
+        private ChoiceBox choiceBox;
+
+        public ChoiceTypeListener(ChoiceBox choiceBox) {
+            this.choiceBox = choiceBox;
+        }
+
+        @Override
+        public void changed(ObservableValue<? extends Wine$Type> property,
+                Wine$Type oldValue, Wine$Type newValue) {
+            choiceBox.getSelectionModel().select(newValue);
+        }
+    }
+}
+----
+
+Ouch!
+This cell implementation looks (and is) intimidating but in fact we just create 3 text and choice fields 
+for the values we want to edit in the +Wine+ object. Then we set bidirectional bindings between each field 
+and the corresponding property of the +Wine+ class. +ChoiceBox+ is the most complex because we can't bind from 
+the +selectedItem+ property (Why not M. JavaFX ?), so we have to define a change listener to achieve the same result.
+
+There is nothing else to change, this is purely client code. The persistence will be ensured by the cascading 
+options we have defined on the JPA entity.
+Interestingly we don't have to handle the loading of the collection, Tide will trigger a remote loading of the 
+collection content when the content is first requested, for example when a UI control tries to display the data.
+
+As before, build and run:
+
+----
+git checkout step3
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step2...step3
+
+----
+cd javafx
+mvn clean install
+java -jar target/shop-admin-javafx.jar
+----
+
+=== Step 4: Dirty Checking / Undo
+
+If you are not yet sleeping at this point, don't hesitate to have a cup of coffee ;) The next steps are much easier
+and shorter.
+
+If you have played with the application you may have noticed that using bidirectional bindings leads to a strange 
+behaviour. Even without saving your changes, the local objects are still modified and keep the modifications made 
+by the user, so if you select another vineyard without saving the data stays changed. 
+
+To fix this, we can use the fact that GraniteDS tracks all updates made on the managed entities and is able to 
+easily restore the last known stable state of the objects (usually the last fetch from the server). The +ManagedEntity+
+provides a method +reset()+ which does exactly this and we can use in the method +select+ when a user changes the 
+current selection:
+
+[source,java]
+----
+private void select(Vineyard vineyard) {
+	if (vineyard == this.vineyard.getInstance() && this.vineyard.getInstance() != null)
+		return;
+	
+	this.vineyard.reset();
+	
+	if (vineyard != null)
+		this.vineyard.setInstance(vineyard);
+	else {
+		Vineyard newVineyard = new Vineyard();
+		newVineyard.setName("");
+		newVineyard.setAddress(new Address());
+		newVineyard.getAddress().setAddress("");			
+		this.vineyard.setInstance(newVineyard);
+	}
+}
+----
+
+We can also enable or disable the _Save_ and _Cancel_ buttons depending on the fact that the user has modified 
+something or not by using the +dirty+ property of the +ManagedEntity+:
+
+[source,java]
+----
+buttonSave.disableProperty().bind(Bindings.not(vineyard.dirtyProperty()));
+buttonCancel.disableProperty().bind(
+		Bindings.not(Bindings.or(vineyard.savedProperty(), vineyard.dirtyProperty())));
+----
+
+Other use cases for this +dirty+ property could be to show an alert when trying to close the app with unsaved changes,
+or triggering auto-save.
+
+As before, there is a tag +step4+ on the git repository.
+
+----
+git checkout step4
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step3...step4
+
+----
+cd javafx
+mvn clean install
+java -jar target/shop-admin-javafx.jar
+----
+
+=== Step 5: Validation
+
+We can create, edit and search in our database. We would now like to ensure that our data in consistent. 
+The Bean Validation API is our friend and we can use it on both the server JPA entities and on the client data objects.
+Going back to the JPA model, we add a few validation annotations, here in the +Wine+ class:
+
+[source,java]
+----
+@Basic
+@Size(min=5, max=100,
+    message="The name must contain between {min} and {max} characters")
+private String name;
+
+@Basic
+@Min(value=1900,
+    message="The year must be greater than {value}")
+@Past
+private Integer year;
+
+@Enumerated(EnumType.STRING)
+@NotNull
+private Type type;
+----
+
+By adding this we ensure that JPA will not let us save incorrect values. However we would also like to notify 
+the user that something went wrong. The brutal way would be to add a special handling of validation error in each 
+and every fault handler of the application. 
+A better way would be to define a global exception handler that will handle all validation faults. Indeed Tide 
+already provides such a thing, and it takes server exceptions and propagates them as events on the faulty property 
+of the target data object. 
+Finally we would have to listen to these events and display some message or trigger some notification to the user. 
+GraniteDS provides a special component, the +FormValidator+, that will further simplify our work. 
+We will simply have to attach it to the form containing the fields that we want to validate after the entity to 
+validate has been bound:
+
+[source,java]
+----
+@Inject
+private NotifyingValidatorFactory validatorFactory;
+
+private FormValidator formValidator;
+
+@PostConstruct
+private void init() {
+	formValidator = new FormValidator(validatorFactory);
+}
+
+...
+
+private void select(Vineyard vineyard) {
+	if (vineyard == this.vineyard.getInstance() && this.vineyard.getInstance() != null)
+		return;
+	
+	formValidator.setForm(null);
+	
+	...
+	
+	formValidator.setForm(formVineyard);
+}
+----
+
+The +NotifyingValidatorFactory+ is an extension of the standard +ValidatorFactory+ which dispatches validation
+events after the validation is applied, so the application can be notified when an object is valid or not and update
+the UI accordingly.
+
+Here we set a red border and a tooltip with the error message on the faulty fields when a validation event is 
+received:
+
+[source,java]
+----
+formVineyard.addEventHandler(ValidationResultEvent.INVALID, 
+	new EventHandler<ValidationResultEvent>() {
+	@Override
+	public void handle(ValidationResultEvent event) {
+		((Node)event.getTarget()).setStyle("-fx-border-color: red");
+		if (event.getTarget() instanceof TextInputControl && event.getErrorResults() != null 
+			&& event.getErrorResults().size() > 0) {
+			Tooltip tooltip = new Tooltip(event.getErrorResults().get(0).getMessage());
+			tooltip.setAutoHide(true);
+			((TextInputControl)event.getTarget()).setTooltip(tooltip);
+		}
+	}
+});
+formVineyard.addEventHandler(ValidationResultEvent.VALID, 
+	new EventHandler<ValidationResultEvent>() {
+	@Override
+	public void handle(ValidationResultEvent event) {
+		((Node)event.getTarget()).setStyle("-fx-border-color: null");
+		if (event.getTarget() instanceof TextInputControl) {
+			Tooltip tooltip = ((TextInputControl)event.getTarget()).getTooltip();
+			if (tooltip != null && tooltip.isActivated())
+				tooltip.hide();
+			((TextInputControl)event.getTarget()).setTooltip(null);
+		}
+	}
+});
+----
+
+If you test the application now, that should work fine, but the user is still able to submit the _Save_ button 
+even with invalid data. It's easy to block the remote call by forcing a client-side validation:
+
+[source,java]
+----
+@FXML
+private void save(ActionEvent event) {
+	if (!validatorFactory.getValidator().validate(this.vineyard.getInstance()).isEmpty())
+		return;
+	
+    ...
+}
+----
+
+Tag +step5+ on the git repository.
+
+----
+git checkout step5
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step4...step5
+
+NOTE: Don't forget to rebuild the server
+
+----
+mvn clean install
+cd javafx
+java -jar target/shop-admin-javafx.jar
+----
+
+=== Step 6: Security
+
+The application already has a basic security with the login page. If you look how this works, you will find 
+the component +Identity+ which acts as a gateway between the client and the Spring Security framework.
+
+Just as an exercise, we can add a _Logout_ button to our application:
+
+[source,xml]
+----
+<Button text="Logout" onAction="identity.logout(null)"/>
+----
+
+With a tiny bit of JavaScript, we can call the +logout+ method of +identity+. As we have defined a change listener 
+on the property +loggedIn+ of +identity+ in the +Main+ class, the current view will be destroyed and replaced by 
+the login screen.
+
+We can also decide in the initialization of the +Home+ controller that only administrators can delete entities:
+
+[source,java]
+----
+buttonDelete.disableProperty().bind(Bindings.not(identity.ifAllGranted("ROLE_ADMIN")));
+----
+
+Tag +step6+ on the git repository.
+
+----
+git checkout step6
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step5...step6
+
+----
+cd javafx
+mvn clean install
+java -jar target/shop-admin-javafx.jar
+----
+
+=== Step 7: Real-time data push
+
+Until now, we have used only one client at a time. We are going to configure GraniteDS to push JPA data updates 
+from the server to all connected clients. We have almost already everything in place, the archetype has setup 
+a complete configuration with long-polling on Jetty 8. When deploying on another container, you might need to change the 
+configuration to use the specific support, or use websockets on supported containers.
+
+First we need to declare a messaging destination in the server configuration +app-config.xml+:
+
+[source,xml]
+----
+<graniteds:messaging-destination id="wineshopTopic" no-local="true" session-selector="true"/>
+----
+
+Declare the topic and enable automatic publishing on the Spring Data repository with the +@DataEnabled+ annotation:
+
+[source,java]
+----
+@RemoteDestination
+@DataEnabled(topic="wineshopTopic", publish=PublishMode.ON_SUCCESS)
+public interface VineyardRepository extends FilterableJpaRepository {
+}
+----
+
+Declare a client +DataObserver+ in the Spring configuration and subscribe this topic when the user logs in:
+
+[source,java]
+----
+@Bean
+public DataObserver wineshopTopic(ServerSession serverSession,
+    EntityManager entityManager) {
+    return new DataObserver(serverSession, entityManager);
+}
+----
+
+We listen to the +LOGIN+ and +LOGOUT+ events in the +Login+ controller to subscribe and unsubscribe the topic:
+
+[source,java]
+----
+if (ServerSession.LOGIN.equals(event.getType())) {
+    wineshopTopic.subscribe();
+}
+else if (ServerSession.LOGOUT.equals(event.getType())) {
+    wineshopTopic.unsubscribe();
+}
+...
+----
+
+Now you can build the project and run two or more instances of the application in different consoles. Changes 
+made on a client will be propagated to all other subscribed clients.
+
+Tag +step7+ on the git repository.
+
+----
+git checkout step7
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step6...step7
+
+----
+cd javafx
+mvn clean install
+java -jar target/shop-admin-javafx.jar
+----
+
+
+=== Step 8: Conflict detection and resolution
+
+Finally, now that we are in a multi-user setup, we can show how to handle modification conflicts on an entity.
+For example, if someone starts editing a vineyard, and before he has saved, you edit the same vineyard in another
+client and save it, you would want to notify the first user that there is a modification conflict on the object
+he is working on, and let him the option to keep or discard his own changes.
+
+This mechanism is already built in the framework, you just have to setup a listener to the conflict event in the main
+application:
+
+.Main.java
+[source,java]
+----
+public static class App {
+
+	@Inject
+	private EntityManager entityManager;
+
+	...
+
+	public void start(final Stage stage) throws Exception {
+		...
+		entityManager.addListener(new DataConflictListener() {			
+			@Override
+			public void onConflict(EntityManager entityManager, Conflicts conflicts) {
+				DialogResponse response = Dialogs.showConfirmDialog(stage, 
+						"Accept incoming data or keep local changes ?", 
+						"Conflict with another user modifications", 
+						"Conflict", DialogOptions.YES_NO
+				);
+				if (response == DialogResponse.YES)
+					conflicts.acceptAllServer();
+				else
+					conflicts.acceptAllClient();
+			}			
+		});
+	}
+}
+----
+
+Tag +step8+ on the git repository.
+
+----
+git checkout step8
+----
+
+Compare view on GitHub: https://github.com/graniteds/shop-admin-javafx/compare/step7...step8
+
+
+== Conclusion
+
+Hopefully you now see what GraniteDS is about and how it provides the necessary support and simplifications 
+to build applications that handle a lot of complex data.
