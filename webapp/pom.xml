@@ -35,7 +35,7 @@
     <name>GraniteDS/Tide JavaFX Spring JPA/Hibernate Web App</name>
     
     <properties>
-        <jetty.version>8.1.7.v20120910</jetty.version>
+        <jetty.version>8.1.14.v20131031</jetty.version>
         
         <context.root>/shop-admin-javafx</context.root>
     </properties>
@@ -48,8 +48,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
             </plugin>
 

@@ -28,15 +28,16 @@
     <properties>
         <javafx.version>2.2</javafx.version>
         
-        <graniteds.version>3.0.0.M3</graniteds.version>
+        <graniteds.version>3.0.3.GA</graniteds.version>
         
         <springframework.version>3.1.4.RELEASE</springframework.version>
-        <spring.security.version>3.1.4.RELEASE</spring.security.version>
+        <spring.security.version>3.1.6.RELEASE</spring.security.version>
         <springframework.client.version>3.1.4.RELEASE</springframework.client.version>
         
         <hibernate.version>3.6.10.Final</hibernate.version>
         <hibernate.validator.version>4.3.0.Final</hibernate.validator.version>
     </properties>
+    
   <modules>
     <module>java</module>
     <module>javafx</module>
