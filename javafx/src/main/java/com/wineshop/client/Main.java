@@ -156,8 +156,8 @@ public class Main extends Application {
     	 * Client declaration of the data publishing topic
     	 */
     	@Bean(initMethod="start", destroyMethod="stop")
-    	public DataObserver wineshopTopic(ServerSession serverSession, EntityManager entityManager) {
-    		return new DataObserver(serverSession, entityManager);
+    	public DataObserver wineshopTopic(ServerSession serverSession) {
+    		return new DataObserver(serverSession);
     	}
     }
     
