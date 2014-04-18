@@ -26,9 +26,9 @@ import javafx.beans.value.ObservableValue;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Dialogs;
-import javafx.scene.control.Label;
 import javafx.scene.control.Dialogs.DialogOptions;
 import javafx.scene.control.Dialogs.DialogResponse;
+import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -37,27 +37,28 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.granite.client.javafx.tide.JavaFXServerSessionStatus;
+import org.granite.client.javafx.tide.ManagedEntity;
+import org.granite.client.javafx.tide.TideFXMLLoader;
+import org.granite.client.javafx.tide.cdi.JavaFXTideClientExtension;
+import org.granite.client.javafx.tide.collections.PagedQuery;
+import org.granite.client.javafx.tide.spring.Identity;
 import org.granite.client.tide.ContextManager;
 import org.granite.client.tide.cdi.ViewScoped;
-import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.data.Conflicts;
 import org.granite.client.tide.data.DataConflictListener;
 import org.granite.client.tide.data.DataObserver;
 import org.granite.client.tide.data.EntityManager;
-import org.granite.client.tide.javafx.JavaFXServerSessionStatus;
-import org.granite.client.tide.javafx.ManagedEntity;
-import org.granite.client.tide.javafx.TideFXMLLoader;
-import org.granite.client.tide.javafx.cdi.JavaFXTideClientExtension;
-import org.granite.client.tide.javafx.spring.Identity;
 import org.granite.client.tide.server.ExceptionHandler;
 import org.granite.client.tide.server.ServerSession;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
 import org.granite.client.tide.validation.ValidationExceptionHandler;
-import org.granite.logging.Logger;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.wineshop.client.entities.Vineyard;
 import com.wineshop.client.services.VineyardRepository;
@@ -70,7 +71,7 @@ import com.wineshop.client.services.VineyardRepository;
  */
 public class MainCDI extends Application {
 	
-	static final Logger log = Logger.getLogger(MainCDI.class);
+	static final Logger log = LoggerFactory.getLogger(MainCDI.class);
     
     public static void main(String[] args) {
         Application.launch(MainCDI.class, args);
@@ -86,7 +87,6 @@ public class MainCDI extends Application {
     	@Produces @ApplicationScoped @Named
     	public ServerSession getServerSession() throws Exception {
     		ServerSession serverSession = new ServerSession("/shop-admin-javafx", "localhost", 8080);
-    		serverSession.setUseWebSocket(false);
     		// Important: indicates the packages to scan for remotely serializable classes (mostly domain classes)
         	serverSession.addRemoteAliasPackage("com.wineshop.client.entities");
         	return serverSession;
@@ -169,11 +169,16 @@ public class MainCDI extends Application {
     	@Inject
     	private ServerSession serverSession;
     	
+    	@Inject
+    	private DataObserver wineshopTopic;
+    	
     	
     	public void start(final Stage stage) throws Exception {
     	    /**
     	     * Attach stage to server session (mostly for busy cursor handling)
     	     */
+    		serverSession.start();
+    		wineshopTopic.start();
         	((JavaFXServerSessionStatus)serverSession.getStatus()).setStage(stage);
     		
     		/**
@@ -224,6 +229,8 @@ public class MainCDI extends Application {
     	}
     	
     	public void stop() throws Exception {
+    		wineshopTopic.stop();
+    		serverSession.stop();
     	}
         
     	/**
@@ -239,7 +246,7 @@ public class MainCDI extends Application {
 	            return root;
         	}
         	catch (Exception e) {
-        		log.error(e, "Could not show view");
+        		log.error("Could not show view", e);
         	}
         	return null;
         }

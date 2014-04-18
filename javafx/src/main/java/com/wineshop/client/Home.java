@@ -50,17 +50,17 @@ import javafx.util.converter.IntegerStringConverter;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
-import org.granite.client.tide.collections.javafx.PagedQuery;
-import org.granite.client.tide.collections.javafx.TableViewSortAdapter;
-import org.granite.client.tide.javafx.ManagedEntity;
-import org.granite.client.tide.javafx.spring.Identity;
+import org.granite.client.javafx.tide.ManagedEntity;
+import org.granite.client.javafx.tide.collections.PagedQuery;
+import org.granite.client.javafx.tide.collections.TableViewSortAdapter;
+import org.granite.client.javafx.tide.spring.Identity;
+import org.granite.client.javafx.validation.FormValidator;
+import org.granite.client.javafx.validation.ValidationResultEvent;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
 import org.granite.client.tide.spring.TideApplicationEvent;
 import org.granite.client.validation.NotifyingValidatorFactory;
-import org.granite.client.validation.javafx.FormValidator;
-import org.granite.client.validation.javafx.ValidationResultEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
@@ -127,7 +127,6 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	private FormValidator formValidator;
 	
 	
-	@SuppressWarnings("unused")
 	@PostConstruct
 	private void init() {
 	    formValidator = new FormValidator(validatorFactory);
@@ -217,7 +216,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action on search button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void search(ActionEvent event) {
 	    vineyards.refresh();
 	}
@@ -251,7 +250,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action for Save button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void save(ActionEvent event) {
 		if (!validatorFactory.getValidator().validate(this.vineyard.getInstance()).isEmpty())
 			return;
@@ -279,7 +278,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action for Delete button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void delete(ActionEvent event) {
 		vineyardRepository.delete(vineyard.getInstance().getId(), 
 			new SimpleTideResponder<Void>() {
@@ -294,7 +293,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action for cancel button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void cancel(ActionEvent event) {
 		if (tableVineyards.getSelectionModel().isEmpty())
 			select(null);
@@ -305,7 +304,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action for Add wine button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void addWine(ActionEvent event) {
 	    Wine wine = new Wine();
 	    wine.setVineyard(this.vineyard.getInstance());
@@ -318,7 +317,7 @@ public class Home implements Initializable, ApplicationListener<TideApplicationE
 	/**
 	 * Action for Remove wine button
 	 */
-	@FXML @SuppressWarnings("unused")
+	@FXML
 	private void removeWine(ActionEvent event) {
 	    if (!listWines.getSelectionModel().isEmpty())
 	        this.vineyard.getInstance().getWines().remove(listWines.getSelectionModel().getSelectedIndex());

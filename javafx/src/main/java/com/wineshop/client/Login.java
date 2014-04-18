@@ -32,10 +32,10 @@ import javafx.scene.control.TextField;
 
 import javax.inject.Inject;
 
+import org.granite.client.javafx.tide.spring.Identity;
 import org.granite.client.tide.data.DataObserver;
 import org.granite.client.tide.events.TideEvent;
 import org.granite.client.tide.events.TideEventObserver;
-import org.granite.client.tide.javafx.spring.Identity;
 import org.granite.client.tide.server.ServerSession;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
@@ -65,7 +65,6 @@ public class Login implements Initializable, TideEventObserver {
 	private DataObserver wineshopTopic;
 	
 	
-	@SuppressWarnings("unused")
 	@FXML
 	private void login(ActionEvent event) {
 		identity.login(fieldUsername.getText(), fieldPassword.getText(),
